@@ -341,7 +341,7 @@ body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;letter-sp
 button,input{font-family:inherit}
 .px{position:absolute;inset:-50px;will-change:transform}
 #fx{position:absolute;inset:0;width:100%;height:100%}
-.moon{top:64px;left:auto;right:44%;width:96px;height:96px}
+.moon{top:58px;left:auto;right:56%;width:84px;height:84px}
 .cloud{position:absolute;height:70px;border-radius:50%;
   background:radial-gradient(ellipse at center,rgba(34,22,52,.95) 0%,rgba(34,22,52,.7) 40%,rgba(34,22,52,0) 70%);animation:cloud 70s linear infinite}
 .cloud.c1{top:90px;width:300px;animation-delay:-20s}
@@ -378,10 +378,10 @@ button,input{font-family:inherit}
 .btn-danger:hover{background:rgba(255,77,109,.2)}
 .btn-save{background:#f4731d;color:#fff}
 .btn-save:hover{background:#e3650f}
-.icon-btn{width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.07);color:var(--text)}
-.icon-btn:hover{background:rgba(255,255,255,.13)}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:none;background:#1e1628;color:var(--text)}
+.icon-btn:hover{background:#2a2036}
 .icon-btn:active{transform:scale(.92)}
-.clock{border:none;background:rgba(255,255,255,.05);border-radius:10px;font-size:13px}
+.clock{border:none;background:#1a1323;border-radius:10px;font-size:13px}
 .submit{border-radius:12px;padding:17px;font-size:16px;font-weight:600;letter-spacing:0;color:#fff;
   background:#f4731d;box-shadow:none;transition:background-color .15s,transform .1s}
 .submit::after{display:none}
@@ -442,6 +442,24 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
   .pop{width:110px;height:110px;margin:-55px 0 0 -55px}
 }
 @media (prefers-reduced-motion:reduce){#fx,.cloud{display:none}}
+
+/* Google Sheets */
+.sync{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:20px;background:#1e1628;font-size:13px;font-weight:600;color:var(--text)}
+.sync:hover{background:#2a2036}
+.sync .sdot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.sync.pend .sdot{background:var(--orange2);box-shadow:0 0 8px var(--orange2);animation:blink 1s infinite}
+.sync.err .sdot{background:var(--red);box-shadow:0 0 8px var(--red)}
+@keyframes blink{50%{opacity:.3}}
+.gs{margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.07)}
+.gs-head{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.gs-head svg{width:30px;height:30px;flex-shrink:0}
+.gs-head b{display:block;font-size:15px}
+.gs-head span{font-size:12.5px;color:var(--muted)}
+.gs input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);outline:none;font-size:13px;color:var(--text)}
+.gs input:focus{border-color:rgba(255,255,255,.3)}
+.gs-row{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-top:8px}
+.gs-row .btn{justify-content:center}
+@media (max-width:560px){.sync{height:36px;padding:0 12px}.gs-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -483,6 +501,7 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
       </div>
     </div>
     <div class="top-actions">
+      <button class="sync" id="syncPill" type="button" hidden><span class="sdot"></span><span id="syncTxt">Google Sheets</span></button>
       <div class="clock" id="clock">--</div>
       <button class="icon-btn" id="soundBtn" title="Sonido"></button>
       <button class="btn btn-orange" id="exportTop">
@@ -626,11 +645,19 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
           <button class="btn btn-danger full" id="resetBtn">Reiniciar evento</button>
           <input type="file" id="restoreFile" accept="application/json,.json" hidden>
         </div>
+        <div class="gs">
+          <div class="gs-head"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2.5" fill="#1fa463"/><path d="M8 9h8M8 13h8M8 17h8M12 9v8" stroke="#fff" stroke-width="1.6"/></svg><div><b>Google Sheets</b><span id="gsState">Sin conectar</span></div></div>
+          <input id="gsUrl" placeholder="Pega aquí el enlace de la aplicación web (script.google.com/...)" spellcheck="false" autocomplete="off">
+          <div class="gs-row">
+            <button class="btn btn-ghost" id="gsSave" type="button">Conectar</button>
+            <button class="btn btn-ghost" id="gsAll" type="button">Enviar todos los registros</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <footer>Registro Halloween 2026 &middot; Versión 4.0</footer>
+  <footer>Registro Halloween 2026 &middot; Versión 5.1</footer>
 </div>
 
 <!-- Overlay resultado -->
@@ -650,6 +677,13 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
   const IDB_NAME = 'halloweenRegistro';
   const IDB_STORE = 'kv';
   const SOUND_KEY = 'halloween_sound';
+
+  // ---------- GOOGLE SHEETS ----------
+  // Pega entre las comillas el enlace de tu aplicación web de Google Apps Script.
+  // Así queda conectado en cualquier computador que abra la app.
+  const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyuCiyv7UpAMzLKdAhtYZjGas0bKueJCv574C-CVABuIiowXM7Dn3TOswDrCsItam_O/exec';
+  const GS_KEY = 'halloween_sheets_url';
+  const OUTBOX_KEY = 'halloween_outbox';
 
   /* =========================================================
      ESTADO
@@ -934,6 +968,7 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
         por: mCed && mBms ? 'Cédula y BMS' : (mCed ? 'Cédula' : 'BMS')
       });
       save();
+      gsDup(state.attempts[state.attempts.length - 1]);
       showDup(dup, !!mCed, !!mBms);
       renderStats();
       return;
@@ -943,6 +978,7 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
     state.records.push(rec);
     byCed.set(ced, rec); byBms.set(bms, rec);
     save();
+    gsUpsert(rec);
     clearForm();
     fBms.focus();
     renderAll();
@@ -1143,6 +1179,7 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
     if (!ok) return;
     syncLatest();
     state.records = state.records.filter(x => x.id !== id);
+    gsQueue({ a: 'delete', id });
     reindex(); await save(); renderAll();
     toast(`Registro de ${r.nombre} eliminado`);
   }
@@ -1190,6 +1227,7 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
     if (oc && oc.id !== r.id) return err(`Esa cédula ya pertenece a ${oc.nombre}`);
     if (ob && ob.id !== r.id) return err(`Ese BMS ya pertenece a ${ob.nombre}`);
     Object.assign(r, { bms, cedula: ced, nombre, editado: new Date().toISOString() });
+    gsUpsert(r);
     reindex(); await save();
     closeEdit(); renderAll();
     toast(`Registro de ${nombre} actualizado`);
@@ -1526,6 +1564,77 @@ tbody tr:hover{background:rgba(255,255,255,.035)}
     (function step(t) { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
       el.textContent = fmtN(Math.round(from + (to - from) * e)); if (k < 1) requestAnimationFrame(step); })(t0);
   }
+
+
+  /* =========================================================
+     GOOGLE SHEETS (cola de envío con reintentos)
+     ========================================================= */
+  let outbox = [];
+  try { outbox = JSON.parse(localStorage.getItem(OUTBOX_KEY) || '[]'); if (!Array.isArray(outbox)) outbox = []; } catch (e) { outbox = []; }
+  let gsUrl = '';
+  try { gsUrl = localStorage.getItem(GS_KEY) || ''; } catch (e) {}
+  if (!gsUrl) gsUrl = SHEETS_URL;
+  let gsBusy = false, gsFail = false, gsT = null, gsOkAt = 0;
+  const gsValid = u => /^https:\/\/script\.google(usercontent)?\.com\//.test(u);
+  function saveOutbox() { try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(outbox)); } catch (e) {} }
+  const toRow = r => ({ id: r.id, nombre: r.nombre, cedula: r.cedula, bms: r.bms, fecha: fDate(r.ts), hora: fTime(r.ts) });
+  function gsQueue(op) { if (!gsUrl) return; outbox.push(op); saveOutbox(); gsStatus(); clearTimeout(gsT); gsT = setTimeout(gsFlush, 700); }
+  function gsUpsert(r) { gsQueue({ a: 'upsert', r: toRow(r) }); }
+  function gsDup(d) {
+    gsQueue({ a: 'dup', d: { fecha: fDate(d.ts), hora: fTime(d.ts), nombre: d.nombre, cedula: d.cedula, bms: d.bms, por: d.por,
+      original: d.matchNombre, originalFecha: d.matchTs ? `${fDate(d.matchTs)} ${fTime(d.matchTs)}` : '' } });
+  }
+  async function gsFlush() {
+    if (gsBusy || !gsUrl || !outbox.length) { gsStatus(); return; }
+    if (navigator.onLine === false) { gsFail = true; gsStatus(); return; }
+    gsBusy = true; gsStatus();
+    const batch = outbox.slice(0, 300);
+    try {
+      const ctl = window.AbortController ? new AbortController() : null;
+      const tm = setTimeout(() => ctl && ctl.abort(), 25000);
+      try {
+        await fetch(gsUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ ops: batch }), signal: ctl ? ctl.signal : undefined });
+      } finally { clearTimeout(tm); }
+      outbox.splice(0, batch.length); saveOutbox();
+      gsFail = false; gsOkAt = Date.now();
+    } catch (e) { gsFail = true; }
+    gsBusy = false; gsStatus();
+    if (!gsFail && outbox.length) setTimeout(gsFlush, 300);
+  }
+  function gsStatus() {
+    const pill = $('#syncPill'), txt = $('#syncTxt'), st = $('#gsState');
+    if (!gsUrl) { pill.hidden = true; st.textContent = 'Sin conectar'; return; }
+    pill.hidden = false;
+    pill.classList.toggle('pend', outbox.length > 0 && !gsFail);
+    pill.classList.toggle('err', gsFail && outbox.length > 0);
+    let m;
+    if (!outbox.length) m = 'Sheets al día';
+    else if (gsFail) m = `Sin conexión · ${fmtN(outbox.length)} pendientes`;
+    else m = `Enviando ${fmtN(outbox.length)}`;
+    txt.textContent = m;
+    st.textContent = 'Conectado · ' + (outbox.length ? m.toLowerCase() : (gsOkAt ? `último envío ${fTimeShort(gsOkAt)}` : 'listo para enviar'));
+  }
+  $('#gsUrl').value = gsUrl;
+  $('#gsSave').addEventListener('click', () => {
+    const u = $('#gsUrl').value.trim();
+    if (u && !gsValid(u)) { toast('El enlace debe empezar por https://script.google.com/'); return; }
+    gsUrl = u;
+    try { u ? localStorage.setItem(GS_KEY, u) : localStorage.removeItem(GS_KEY); } catch (e) {}
+    if (!u) { outbox = []; saveOutbox(); gsStatus(); toast('Google Sheets desconectado'); return; }
+    gsStatus(); gsFlush(); toast('Google Sheets conectado');
+  });
+  $('#gsAll').addEventListener('click', async () => {
+    if (!gsUrl) { toast('Primero pega el enlace y conecta'); $('#gsUrl').focus(); return; }
+    if (!state.records.length) { toast('Aún no hay registros para enviar'); return; }
+    const ok = await confirmDialog({ title: 'Enviar todos los registros', text: `Se enviarán los ${fmtN(state.records.length)} registros a Google Sheets. Los que ya estén en la hoja no se duplican, solo se actualizan.`, ok: 'Enviar' });
+    if (!ok) return;
+    for (const r of state.records) outbox.push({ a: 'upsert', r: toRow(r) });
+    saveOutbox(); gsFlush(); toast(`Enviando ${fmtN(state.records.length)} registros`);
+  });
+  $('#syncPill').addEventListener('click', () => { gsFail = false; gsFlush(); });
+  window.addEventListener('online', () => { gsFail = false; gsFlush(); });
+  setInterval(() => { if (outbox.length) { gsFail = false; gsFlush(); } }, 15000);
+  gsStatus(); setTimeout(gsFlush, 1200);
 
   /* =========================================================
      INICIO
